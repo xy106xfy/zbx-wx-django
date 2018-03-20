@@ -123,23 +123,3 @@ class WeTalkApi(object):
             print e
             print u'[ %s ] : [ %s ] menu failed!' % (date_time, method)
 ## WeTalkApi class end -------------------------------------------------------------------------------------------------
-
-'''
-if __name__ == "__main__":
-    corp_id = 'wwdf6ea09fe4017764'
-    corp_secret = 'nBxOLPFS4Mgtu1agC--BSl1f1ca4y4VOGo61PWPkZuw'
-    agent_id = '1000011'
-    wapi = WeiXinAPI(corp_id=corp_id, corp_secret=corp_secret, agent_id=agent_id)
-    #wapi.send_message(msg='haha, this is a test')
-    #wapi.send_message(msgtype='file', filename='test.txt')
-    #wapi.send_message(msgtype='image', filename='test.jpg')
-    #wapi.send_message(msgtype='voice', filename='test.wav')
-    access_token = wapi.get_access_token()
-    #wapi.send_message(access_token=access_token, msg='haha, this is a test')
-    #wapi.send_message(access_token=access_token, msgtype='file', filename='test.txt')
-    #wapi.send_message(access_token=access_token, msgtype='image', filename='test.jpg')
-    #wapi.send_message(access_token=access_token, msgtype='voice', filename='test.wav')
-    wapi.send_message(access_token=access_token, msgtype='file', filename='WeiXinApi.py')
-    wapi2 = WeiXinAPI(corp_id='wwdf6ea09fe4017764', corp_secret='yfX9PCwJ_75bYIFDYC9H2Up8XNRPANKQaoJUHllV5Kk', agent_id='1000012')
-    wapi2.send_message(msg='test.xls')
-'''
