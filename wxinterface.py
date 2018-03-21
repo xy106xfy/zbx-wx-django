@@ -36,7 +36,6 @@ def wxinterface(request):
             sys.exit(1)
         context = {}
         context['content'] = sEchoStr
-        #return render_to_response('wxinterface/wxinterface.html',context=context)
         return HttpResponse(sEchoStr)
     elif request.method == 'POST':
         sReqMsgSig = request.GET.get('msg_signature')
@@ -69,11 +68,11 @@ def wxinterface(request):
         if not zwapi or not wapi:
             zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf', wt_iGet=True)
             wapi = zwapi.w_dic['WX_iGet']['wapi']
-        # 根据content内容，取相对应的信息，主动发送到组
-        para_list = [wapi, content.strip(), fromUser]
+        # 根据content内容，取相对应的信息，主动发送到对应的人
+        touser = fromUser # + '|UserName1|UserName2' ,如果要增加其他人收到消息
+        para_list = [wapi, content.strip(), touser]
         para = tuple(para_list)
         # 启用线程，调用主动发送接口
         thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
         #zwapi.AutoSendAlertInfo(wapi=wapi, cmd_msg=content)
-        #return render_to_response('wxinterface/wxinterface.html',context=context,context_instance=RequestContext(request))
         return HttpResponse('ok')
