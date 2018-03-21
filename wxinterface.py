@@ -36,8 +36,8 @@ def wxinterface(request):
             sys.exit(1)
         context = {}
         context['content'] = sEchoStr
-        return render_to_response('wxinterface/wxinterface.html',context=context)
-        #return HttpResponse(sEchoStr)
+        #return render_to_response('wxinterface/wxinterface.html',context=context)
+        return HttpResponse(sEchoStr)
     elif request.method == 'POST':
         sReqMsgSig = request.GET.get('msg_signature')
         sReqTimeStamp = request.GET.get('timestamp')
@@ -61,21 +61,19 @@ def wxinterface(request):
         context = {}
         context['content'] = content
         time_str = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(int(sReqTimeStamp)))
-        tmpfile = open('/opt/work/wxinterface.log','a')
+        logfile = open('/opt/work/wxinterface.log','a')
         log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 命令:' + content + u' ,命令长度:' + str(len(content))
-        tmpfile.write(log_content + '\n')
-        tmpfile.close()
+        logfile.write(log_content + '\n')
+        logfile.close()
         #WXEnterprise.AutoSendAlertInfo(cmd_msg=content) 
         if not zwapi or not wapi:
             zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf', wt_iGet=True)
             wapi = zwapi.w_dic['WX_iGet']['wapi']
         # 根据content内容，取相对应的信息，主动发送到组
-        para_dic = {}
-        para_dic['wapi'] = wapi
-        para_dic['cmd_msg'] = content.strip()
-        para = tuple(para_dic.values())
+        para_list = [wapi, content.strip(), fromUser]
+        para = tuple(para_list)
         # 启用线程，调用主动发送接口
         thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
         #zwapi.AutoSendAlertInfo(wapi=wapi, cmd_msg=content)
-        return render_to_response('wxinterface/wxinterface.html',context=context,context_instance=RequestContext(request))
-        #return HttpResponse('ok')
+        #return render_to_response('wxinterface/wxinterface.html',context=context,context_instance=RequestContext(request))
+        return HttpResponse('ok')
