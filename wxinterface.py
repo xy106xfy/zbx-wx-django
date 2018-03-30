@@ -54,25 +54,25 @@ def wxinterface(request):
             if msgType == 'text':
                 content = xml_tree.find('Content').text
             elif msgType == 'event':
+                event = xml_tree.find('Event').text
                 content = xml_tree.find('EventKey').text
         except Exception as e:
+            print e
             sys.exit(1)
-        context = {}
-        context['content'] = content
         time_str = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(int(sReqTimeStamp)))
         logfile = open('/opt/work/wxinterface.log','a')
-        log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 命令:' + content + u' ,命令长度:' + str(len(content))
+        if content:
+            log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 命令:' + content + u' ,命令长度:' + str(len(content))
+            if not zwapi or not wapi:
+                zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf', wt_iGet=True)
+                wapi = zwapi.w_dic['WX_iGet']['wapi']
+            # 根据content内容，取相对应的信息，主动发送到对应的人
+            touser = fromUser # + '|UserName1|UserName2' ,如果要增加其他人收到消息
+            para_list = [wapi, content.strip(), touser]
+            para = tuple(para_list)
+            thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
+        else:
+            log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 动作:' + event          
         logfile.write(log_content + '\n')
         logfile.close()
-        #WXEnterprise.AutoSendAlertInfo(cmd_msg=content) 
-        if not zwapi or not wapi:
-            zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf', wt_iGet=True)
-            wapi = zwapi.w_dic['WX_iGet']['wapi']
-        # 根据content内容，取相对应的信息，主动发送到对应的人
-        touser = fromUser # + '|UserName1|UserName2' ,如果要增加其他人收到消息
-        para_list = [wapi, content.strip(), touser]
-        para = tuple(para_list)
-        # 启用线程，调用主动发送接口
-        thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
-        #zwapi.AutoSendAlertInfo(wapi=wapi, cmd_msg=content)
         return HttpResponse('ok')
