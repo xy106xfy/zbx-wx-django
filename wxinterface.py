@@ -12,9 +12,10 @@ import thread
 import ZabbixWeTalkApi
 import time
 
-sToken = "hJqcu3uJ9Tn2gXPmxx2w9kkCkCE2EPYo"
-sEncodingAESKey = "6qkdMrs68nhKduznJYO1A37W2oEgpkMUvkttRToqhUt"
-sCorpID = "wwdf6ea09fe4015784"
+# 企业微信上定义的 Token、加密密钥和企业微信ID，具体参见企业微信的开发文档
+sToken = ""  
+sEncodingAESKey = ""
+sCorpID = ""
 
 wxcpt=WXBizMsgCrypt(sToken,sEncodingAESKey,sCorpID)
 zwapi = ''
@@ -34,8 +35,6 @@ def wxinterface(request):
         if(ret!=0):
             print "ERR: VerifyURL ret: " + str(ret)
             sys.exit(1)
-        context = {}
-        context['content'] = sEchoStr
         return HttpResponse(sEchoStr)
     elif request.method == 'POST':
         sReqMsgSig = request.GET.get('msg_signature')
@@ -50,6 +49,7 @@ def wxinterface(request):
         try:
             toUser = xml_tree.find('ToUserName').text
             fromUser = xml_tree.find('FromUserName').text
+            agentid = xml_tree.find('AgentID').text
             msgType = xml_tree.find('MsgType').text
             if msgType == 'text':
                 content = xml_tree.find('Content').text
@@ -60,17 +60,23 @@ def wxinterface(request):
             print e
             sys.exit(1)
         time_str = time.strftime('%Y-%m-%d %H:%M:%S',time.localtime(int(sReqTimeStamp)))
-        logfile = open('/opt/work/wxinterface.log','a')
+        logfile = open('wxinterface.log','a')
+        # 根据content内容，取相对应的信息，主动发送到对应的人
         if content:
-            log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 命令:' + content + u' ,命令长度:' + str(len(content))
-            if not zwapi or not wapi:
-                zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf', wt_iGet=True)
-                wapi = zwapi.w_dic['WX_iGet']['wapi']
-            # 根据content内容，取相对应的信息，主动发送到对应的人
-            touser = fromUser # + '|UserName1|UserName2' ,如果要增加其他人收到消息
-            para_list = [wapi, content.strip(), touser]
-            para = tuple(para_list)
-            thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
+            log_content = time_str + u', 用户:' + fromUser + u', 发送至:' + agentid  +  u', 事件类型:' + msgType + u', 命令:' + content + u' ,命令长度:' + str(len(content))
+            if not zwapi:
+                zwapi = ZabbixWeTalkApi.ZabbixWeTalkApi(config_file='WeiXinByGroup.conf')
+                #wapi = zwapi.w_dic['WX_iGet']['wapi']
+            for wx in zwapi.w_dic.values():
+                if agentid in wx.values():
+                    touser_list = [fromUser, 'user1', 'user2', 'user3']
+                    wapi = wx['wapi']
+                    if wapi:
+                        para = tuple([wapi, content.strip(), touser_list])
+                        thread.start_new_thread(zwapi.AutoSendAlertInfo,para)
+                        wapi.send_message(touser=['user1','user2'],msg=log_content)
+                    else:
+                        sys.exit(1)
         else:
             log_content = time_str + u', 用户:' + fromUser + u', 事件类型:' + msgType + u', 动作:' + event          
         logfile.write(log_content + '\n')

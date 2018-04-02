@@ -102,12 +102,15 @@ class ZabbixWeTalkApi(object):
                     z_dic[sec]['zapi'] = ''
                     z_dic[sec]['start_flag'] = 0
                     print u'[ %s ] : %s 初始化【失败】 配置项错误！' % (date_time, sec)
-            elif (self.wt_iGet and (sec == self.wt_iGet_sec)) or ((not self.wt_iGet) and (sec != self.wt_iGet_sec) and (self.wt_cfg_key == sec[0:len(self.wt_cfg_key)])):
+            #elif (self.wt_iGet and (sec == self.wt_iGet_sec)) or ((not self.wt_iGet) and (sec != self.wt_iGet_sec) and (self.wt_cfg_key == sec[0:len(self.wt_cfg_key)])):
+            elif (self.wt_cfg_key == sec[0:len(self.wt_cfg_key)]):
                 w_dic[sec] = {}
                 date_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
                 try:
                     w_dic[sec]['start_flag'] = int(cf.get(sec, "start_flag").strip())
                     if w_dic[sec]['start_flag']:
+                        w_dic[sec]['wx_name'] =  sec
+                        w_dic[sec]['menu_flag'] = int(cf.get(sec,"menu_flag").strip())
                         w_dic[sec]['corp_id'] = cf.get(sec, "corp_id").strip()
                         w_dic[sec]['corp_secret'] = cf.get(sec, "corp_secret").strip()
                         w_dic[sec]['agent_id'] = cf.get(sec, "agent_id").strip()
@@ -613,22 +616,43 @@ class ZabbixWeTalkApi(object):
     def WeTalkMenu(self):
         z_dic = self.z_dic
         w_dic = self.w_dic
-        menu = {
+        menu_all = {
             'button': [
                 {'type': 'click', 'name': u'命令帮助', 'key': '.help'},
                 {'name': u'当前告警', 'sub_button': [{'type': 'click', 'name': u'所有', 'key': '.getnow'}]},
                 {'name': u'昨天告警', 'sub_button': []},
             ]
         }
+
+        menu_single = {
+            'button' : [
+                {'type': 'click', 'name': u'命令帮助', 'key': '.help'},
+            ]
+        }
         for zbx in z_dic:
              if z_dic[zbx]['start_flag'] != 0:
-                 m_dic = {'type': 'click', 'name': z_dic[zbx]['zbx_name'], 'key': '.getnow ' + z_dic[zbx]['zbx_name']}
-                 menu['button'][1]["sub_button"].append(m_dic)
-                 m_dic = {'type': 'click', 'name': z_dic[zbx]['zbx_name'], 'key': '.getday 1 ' + z_dic[zbx]['zbx_name'] + ' f'}
-                 menu['button'][2]["sub_button"].append(m_dic)
+                m_dic = {'type': 'click', 'name': z_dic[zbx]['zbx_name'], 'key': '.getnow ' + z_dic[zbx]['zbx_name']}
+                menu_all['button'][1]["sub_button"].append(m_dic)
+                m_dic = {'type': 'click', 'name': z_dic[zbx]['zbx_name'], 'key': '.getday 1 ' + z_dic[zbx]['zbx_name'] + ' f'}
+                menu_all['button'][2]["sub_button"].append(m_dic)
+                # 单个菜单 
+                m_s_dic = {'type': 'click', 'name': u'当前告警', 'key': '.getnow ' + z_dic[zbx]['zbx_name']}
+                menu_single['button'].append(m_s_dic)
+                m_s_dic = {'type': 'click', 'name': u'昨天告警', 'key': '.getday 1 ' + z_dic[zbx]['zbx_name'] + ' f'}
+                menu_single['button'].append(m_s_dic)
+                wx = z_dic[zbx]['toagent'][0]
+                wapi = w_dic[wx]['wapi']
+                if wapi and (w_dic[wx]['menu_flag'] != 0):
+                    wapi.send_menu(method='delete')
+                    wapi.send_menu(method='create', menu=menu_single)
+                menu_single = {
+                    'button' : [
+                        {'type': 'click', 'name': u'命令帮助', 'key': '.help'},
+                    ]
+                }
         wapi = w_dic[self.wt_iGet_sec]['wapi']
-        if wapi:
+        menu_flag = w_dic[self.wt_iGet_sec]['menu_flag']
+        if wapi and (menu_flag != 0):
             wapi.send_menu(method='delete')
-            wapi.send_menu(method='create', menu=menu)
+            wapi.send_menu(method='create', menu=menu_all)
 ## ZabbixWeTalkApi class end -------------------------------------------------------------------------------------------------
-
